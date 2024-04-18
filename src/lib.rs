@@ -18,7 +18,24 @@ pub struct ApplyArgs {
 }
 
 pub fn apply(args: ApplyArgs) -> Result<()> {
-    let staging_dir = PathBuf::from(
+    let staging_dir = get_staging_dir()?;
+    println!("Staging at directory: {}", staging_dir.display());
+    stage_source(&args, &staging_dir).context("stage source")?;
+    println!(
+        "Applying to target directory: {}",
+        args.target_dir.display()
+    );
+    let apply_result = copy_directory_full(&staging_dir, &args.target_dir)
+        .context("copy staging recursively to target");
+    println!("Cleaning up staging directory: {}", staging_dir.display());
+    cleanup_staging(&staging_dir)?;
+    apply_result?;
+    println!("Done.");
+    Ok(())
+}
+
+fn get_staging_dir() -> Result<PathBuf> {
+    Ok(PathBuf::from(
         String::from_utf8(
             std::process::Command::new("mktemp")
                 .arg("--tmpdir")
@@ -29,24 +46,16 @@ pub fn apply(args: ApplyArgs) -> Result<()> {
                 .stdout,
         )?
         .trim(),
-    );
-    println!("Staging at directory: {}", staging_dir.display());
-    stage_source(&args, &staging_dir).context("stage source")?;
-    println!(
-        "Applying to target directory: {}",
-        args.target_dir.display()
-    );
-    let apply_result = copy_directory_full(&staging_dir, &args.target_dir)
-        .context("copy staging recursively to target");
-    println!("Cleaning up staging directory: {}", staging_dir.display());
-    std::fs::remove_dir_all(&staging_dir).with_context(|| {
+    ))
+}
+
+fn cleanup_staging(staging_dir: &Path) -> Result<()> {
+    std::fs::remove_dir_all(staging_dir).with_context(|| {
         format!(
             "failed to remove staging directory {}",
             staging_dir.display()
         )
     })?;
-    apply_result?;
-    println!("Done.");
     Ok(())
 }
 
