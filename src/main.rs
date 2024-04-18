@@ -17,6 +17,8 @@ struct Args {
 enum Operation {
     /// Apply a source directory
     Apply(ApplyArgs),
+    /// Add a new file to the source directory
+    Add(AddArgs),
 }
 
 #[derive(Debug, Parser)]
@@ -35,10 +37,24 @@ struct ApplyArgs {
     verbose: bool,
 }
 
+#[derive(Debug, Parser)]
+struct AddArgs {
+    /// New file
+    #[arg()]
+    new_file: PathBuf,
+    /// Source directory
+    #[arg(short = 's', long)]
+    source_dir: Option<PathBuf>,
+    /// Show more verbose output
+    #[arg(short = 'v', long)]
+    verbose: bool,
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
     match args.operation {
         Operation::Apply(args) => apply(args)?,
+        Operation::Add(args) => add(args)?,
     }
     Ok(())
 }
@@ -60,7 +76,7 @@ fn apply(args: ApplyArgs) -> Result<()> {
     } else {
         get_machine_hostname().context("get hostname")?
     };
-    let apply_args = homux::ApplyArgs {
+    let apply_args = homux::apply::ApplyArgs {
         source_dir,
         target_dir,
         hostname,
@@ -70,7 +86,25 @@ fn apply(args: ApplyArgs) -> Result<()> {
     if args.verbose {
         println!("{apply_args:#?}");
     }
-    homux::apply(apply_args)?;
+    homux::apply::apply(apply_args)?;
+    Ok(())
+}
+
+fn add(args: AddArgs) -> Result<()> {
+    let source_dir = if let Some(source_dir) = args.source_dir {
+        source_dir
+    } else {
+        get_default_source_directory().context("get default source directory")?
+    };
+    let add_args = homux::add::AddArgs {
+        target_file: args.new_file,
+        source_dir,
+        verbose: args.verbose,
+    };
+    if args.verbose {
+        println!("{add_args:#?}");
+    }
+    homux::add::add(add_args)?;
     Ok(())
 }
 
