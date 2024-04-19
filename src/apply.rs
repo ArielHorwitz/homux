@@ -1,4 +1,4 @@
-use crate::files::{copy_directory_full, get_relative_path, walk_dir};
+use crate::files::{copy_directory_full, get_relative_path, walk_dir, copy_file_mode};
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
@@ -87,10 +87,11 @@ fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
                 ENTER_PATTERN,
                 EXIT_PATTERN,
             )?;
-            std::fs::write(staging_path, fixed_text).context("failed to write to staging dir")?;
+            std::fs::write(&staging_path, fixed_text).context("failed to write to staging dir")?;
         } else {
-            std::fs::copy(file_path, staging_path).context("failed to copy to staging dir")?;
+            std::fs::copy(&file_path, &staging_path).context("failed to copy to staging dir")?;
         }
+        copy_file_mode(&file_path, &staging_path)?;
     }
     Ok(())
 }

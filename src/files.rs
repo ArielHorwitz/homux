@@ -1,11 +1,17 @@
 use anyhow::{Context, Result};
-use std::fs;
+use std::fs::{self, Permissions};
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Default)]
 pub struct RecursiveDirContents {
     pub dirs: Vec<PathBuf>,
     pub files: Vec<PathBuf>,
+}
+
+pub fn get_home_dir() -> Result<PathBuf> {
+    let home_dir = std::env::var("HOME").context("get user home directory from environment")?;
+    Ok(PathBuf::from(home_dir))
 }
 
 pub fn walk_dir(path: &Path) -> Result<RecursiveDirContents> {
@@ -56,6 +62,14 @@ pub fn copy_directory_full<P: AsRef<Path>>(from: P, to: P) -> Result<()> {
         let target_path = to.as_ref().to_path_buf().join(relative_path);
         std::fs::copy(&file_path, &target_path)
             .with_context(|| format!("failed to copy to {}", target_path.display()))?;
+        copy_file_mode(&file_path, &target_path)?;
     }
+    Ok(())
+}
+
+pub fn copy_file_mode(src: &Path, dst: &Path) -> Result<()> {
+    let metadata = fs::metadata(src)?;
+    let permissions = metadata.permissions();
+    fs::set_permissions(dst, Permissions::from_mode(permissions.mode())).context("set permissions")?;
     Ok(())
 }

@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
+use homux::files::get_home_dir;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -19,6 +20,8 @@ enum Operation {
     Apply(ApplyArgs),
     /// Add a new file to the source directory
     Add(AddArgs),
+    /// Print info
+    Print(PrintArgs),
 }
 
 #[derive(Debug, Parser)]
@@ -42,12 +45,28 @@ struct AddArgs {
     /// New file
     #[arg()]
     new_file: PathBuf,
-    /// Source directory
+    /// Source directory to add to
     #[arg(short = 's', long)]
     source_dir: Option<PathBuf>,
+    /// File relative base path [default from home directory]
+    #[arg(short = 'b', long)]
+    relative_base: Option<PathBuf>,
     /// Show more verbose output
     #[arg(short = 'v', long)]
     verbose: bool,
+}
+
+#[derive(Debug, Parser)]
+struct PrintArgs {
+    /// Value to print
+    #[arg()]
+    value: PrintValue,
+}
+
+#[derive(Debug, clap::ValueEnum, Clone, Copy)]
+enum PrintValue {
+    /// Default source directory
+    Source,
 }
 
 fn main() -> Result<()> {
@@ -55,6 +74,7 @@ fn main() -> Result<()> {
     match args.operation {
         Operation::Apply(args) => apply(args)?,
         Operation::Add(args) => add(args)?,
+        Operation::Print(args) => print_operation(args)?,
     }
     Ok(())
 }
@@ -96,9 +116,15 @@ fn add(args: AddArgs) -> Result<()> {
     } else {
         get_default_source_directory().context("get default source directory")?
     };
+    let target_base = if let Some(relative_base) = args.relative_base {
+        relative_base
+    } else {
+        get_home_dir().context("get default target base")?
+    };
     let add_args = homux::add::AddArgs {
         target_file: args.new_file,
         source_dir,
+        target_base,
         verbose: args.verbose,
     };
     if args.verbose {
@@ -108,11 +134,15 @@ fn add(args: AddArgs) -> Result<()> {
     Ok(())
 }
 
+fn print_operation(args: PrintArgs) -> Result<()> {
+    match args.value {
+        PrintValue::Source => println!("{}", get_default_source_directory()?.display()),
+    }
+    Ok(())
+}
+
 fn get_default_source_directory() -> Result<PathBuf> {
-    Ok(
-        PathBuf::from(std::env::var("HOME").context("get user home directory from environment")?)
-            .join(".local/share/homux/source"),
-    )
+    Ok(get_home_dir()?.join(".local/share/homux/source"))
 }
 
 fn get_machine_hostname() -> Result<String> {
