@@ -1,5 +1,8 @@
 [package]
 name = "homux"
+description = "Synchronize your home directory across host machines."
+repository = "https://github.com/ArielHorwitz/matchpick"
+license = "Unlicense"
 version = "0.1.0"
 edition = "2021"
 
