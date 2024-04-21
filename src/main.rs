@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use homux::files::get_home_dir;
+use homux::{get_machine_hostname, get_default_source_directory};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -139,20 +140,4 @@ fn print_operation(args: PrintArgs) -> Result<()> {
         PrintValue::Source => println!("{}", get_default_source_directory()?.display()),
     }
     Ok(())
-}
-
-fn get_default_source_directory() -> Result<PathBuf> {
-    Ok(get_home_dir()?.join(".local/share/homux/source"))
-}
-
-fn get_machine_hostname() -> Result<String> {
-    Ok(String::from_utf8(
-        std::process::Command::new("hostnamectl")
-            .arg("hostname")
-            .output()
-            .context("failed to get hostname")?
-            .stdout,
-    )?
-    .trim()
-    .to_owned())
 }
