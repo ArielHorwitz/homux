@@ -60,13 +60,14 @@ struct AddArgs {
 #[derive(Debug, Parser)]
 struct PrintArgs {
     /// Value to print
-    #[arg()]
+    #[arg(value_enum, default_value_t = PrintValue::Source)]
     value: PrintValue,
 }
 
 #[derive(Debug, clap::ValueEnum, Clone, Copy)]
 enum PrintValue {
     /// Default source directory
+    #[clap(name = "source")]
     Source,
 }
 
