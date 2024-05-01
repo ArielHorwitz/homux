@@ -91,7 +91,7 @@ fn apply(args: ApplyArgs) -> Result<()> {
     let target_dir = if args.dry_run {
         PathBuf::from(String::from("/tmp/homux.dry_run"))
     } else {
-        unimplemented!("only dry run is implemented")
+        get_home_dir().context("get home directory")?
     };
     let hostname = if let Some(hostname) = args.hostname {
         hostname
