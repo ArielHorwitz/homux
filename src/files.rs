@@ -70,6 +70,7 @@ pub fn copy_directory_full<P: AsRef<Path>>(from: P, to: P) -> Result<()> {
 pub fn copy_file_mode(src: &Path, dst: &Path) -> Result<()> {
     let metadata = fs::metadata(src)?;
     let permissions = metadata.permissions();
-    fs::set_permissions(dst, Permissions::from_mode(permissions.mode())).context("set permissions")?;
+    fs::set_permissions(dst, Permissions::from_mode(permissions.mode()))
+        .context("set permissions")?;
     Ok(())
 }

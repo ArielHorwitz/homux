@@ -1,4 +1,4 @@
-use crate::files::{copy_directory_full, get_relative_path, walk_dir, copy_file_mode};
+use crate::files::{copy_directory_full, copy_file_mode, get_relative_path, walk_dir};
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
