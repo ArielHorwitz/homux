@@ -12,3 +12,5 @@ edition = "2021"
 anyhow = "1.0.81"
 clap = { version = "4.5.4", features = ["derive"] }
 matchpick = "0.1.1"
+serde = { version = "1.0.200", features = ["derive"] }
+toml = "0.8.12"

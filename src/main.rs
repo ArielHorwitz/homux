@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use homux::files::get_home_dir;
-use homux::{get_machine_hostname, get_default_source_directory};
+use homux::{
+    config::{generate_default_configuration_file, Config},
+    files::get_home_dir,
+};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -13,6 +15,9 @@ struct Args {
     /// Operation
     #[command(subcommand)]
     operation: Operation,
+    /// Custom configuration file path [default: ~/.config/homux/config.toml]
+    #[arg(long)]
+    config_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Parser)]
@@ -73,21 +78,19 @@ enum PrintValue {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    dbg!(&args);
+    generate_default_configuration_file().context("generate default configuration file")?;
+    let config = homux::config::parse_configuration_file(args.config_file)?;
     match args.operation {
-        Operation::Apply(args) => apply(args)?,
-        Operation::Add(args) => add(args)?,
-        Operation::Print(args) => print_operation(args)?,
+        Operation::Apply(args) => apply(args, config)?,
+        Operation::Add(args) => add(args, config)?,
+        Operation::Print(args) => print_operation(args, config)?,
     }
     Ok(())
 }
 
-fn apply(args: ApplyArgs) -> Result<()> {
-    let source_dir = if let Some(source_dir) = args.source_dir {
-        // TODO: check if suspect that source directory is not a home directory
-        source_dir
-    } else {
-        get_default_source_directory().context("get default source directory")?
-    };
+fn apply(args: ApplyArgs, config: Config) -> Result<()> {
+    let source_dir = args.source_dir.unwrap_or(config.source);
     let target_dir = if args.dry_run {
         PathBuf::from(String::from("/tmp/homux.dry_run"))
     } else {
@@ -112,12 +115,8 @@ fn apply(args: ApplyArgs) -> Result<()> {
     Ok(())
 }
 
-fn add(args: AddArgs) -> Result<()> {
-    let source_dir = if let Some(source_dir) = args.source_dir {
-        source_dir
-    } else {
-        get_default_source_directory().context("get default source directory")?
-    };
+fn add(args: AddArgs, config: Config) -> Result<()> {
+    let source_dir = args.source_dir.unwrap_or(config.source);
     let target_base = if let Some(relative_base) = args.relative_base {
         relative_base
     } else {
@@ -136,9 +135,21 @@ fn add(args: AddArgs) -> Result<()> {
     Ok(())
 }
 
-fn print_operation(args: PrintArgs) -> Result<()> {
+fn print_operation(args: PrintArgs, config: Config) -> Result<()> {
     match args.value {
-        PrintValue::Source => println!("{}", get_default_source_directory()?.display()),
+        PrintValue::Source => println!("{}", config.source.display()),
     }
     Ok(())
+}
+
+fn get_machine_hostname() -> Result<String> {
+    Ok(String::from_utf8(
+        std::process::Command::new("hostnamectl")
+            .arg("hostname")
+            .output()
+            .context("failed to get hostname")?
+            .stdout,
+    )?
+    .trim()
+    .to_owned())
 }
