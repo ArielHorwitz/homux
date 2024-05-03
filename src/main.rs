@@ -41,7 +41,7 @@ struct ApplyArgs {
     /// Dry run (apply to temporary directory instead of home directory)
     #[arg(short = 'd', long)]
     dry_run: bool,
-    /// Show more verbose output
+    /// Print more verbose output
     #[arg(short = 'v', long)]
     verbose: bool,
 }
@@ -54,12 +54,9 @@ struct AddArgs {
     /// Source directory to add to
     #[arg(short = 's', long)]
     source_dir: Option<PathBuf>,
-    /// File relative base path [default from home directory]
+    /// File relative base path [default: from home directory]
     #[arg(short = 'b', long)]
     relative_base: Option<PathBuf>,
-    /// Show more verbose output
-    #[arg(short = 'v', long)]
-    verbose: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -108,9 +105,7 @@ fn apply(args: ApplyArgs, config: Config) -> Result<()> {
         max_file_size: 1_000_000,
         verbose: args.verbose,
     };
-    if args.verbose {
-        println!("{apply_args:#?}");
-    }
+    dbg!(&apply_args);
     homux::apply::apply(apply_args)?;
     Ok(())
 }
@@ -126,11 +121,8 @@ fn add(args: AddArgs, config: Config) -> Result<()> {
         target_file: args.new_file,
         source_dir,
         target_base,
-        verbose: args.verbose,
     };
-    if args.verbose {
-        println!("{add_args:#?}");
-    }
+    dbg!(&add_args);
     homux::add::add(add_args)?;
     Ok(())
 }

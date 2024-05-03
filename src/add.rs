@@ -7,7 +7,6 @@ pub struct AddArgs {
     pub target_file: PathBuf,
     pub target_base: PathBuf,
     pub source_dir: PathBuf,
-    pub verbose: bool,
 }
 
 pub fn add(args: AddArgs) -> Result<()> {
