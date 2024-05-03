@@ -20,11 +20,15 @@ pub fn add(args: AddArgs) -> Result<()> {
     };
     let relative_target_file =
         get_relative_path(&args.target_base, &target_file).context("get relative target file")?;
+    dbg!(&relative_target_file);
     let target_path = args.source_dir.join(relative_target_file);
     println!(
         "Adding new file to source directory: {}",
         target_path.display(),
     );
+    if let Some(parent) = target_path.parent() {
+        std::fs::create_dir_all(parent).context("create sub-directory in source directory")?;
+    }
     std::fs::copy(&target_file, &target_path).context("copy file to source directory")?;
     copy_file_mode(&target_file, &target_path)?;
     Ok(())
