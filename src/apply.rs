@@ -1,5 +1,6 @@
 use crate::files::{copy_directory_full, copy_file_mode, get_relative_path, walk_dir};
 use anyhow::{Context, Result};
+use colored::Colorize;
 use std::path::{Path, PathBuf};
 
 const STAGING_DIR_TEMPLATE: &str = "homux.staging.XXXXXXXXX";
@@ -17,18 +18,27 @@ pub struct ApplyArgs {
 
 pub fn apply(args: ApplyArgs) -> Result<()> {
     let staging_dir = get_staging_dir()?;
-    println!("Staging at directory: {}", staging_dir.display());
+    println!(
+        "{} at directory: {}",
+        "Staging".green().bold(),
+        staging_dir.display()
+    );
     stage_source(&args, &staging_dir).context("stage source")?;
     println!(
-        "Applying to target directory: {}",
+        "{} to target directory: {}",
+        "Applying".green().bold(),
         args.target_dir.display()
     );
     let apply_result = copy_directory_full(&staging_dir, &args.target_dir)
         .context("copy staging recursively to target");
-    println!("Cleaning up staging directory: {}", staging_dir.display());
+    println!(
+        "{} up staging directory: {}",
+        "Cleaning".green().bold(),
+        staging_dir.display()
+    );
     cleanup_staging(&staging_dir)?;
     apply_result?;
-    println!("Done.");
+    println!("{}", "Done.".green().bold());
     Ok(())
 }
 
@@ -72,13 +82,17 @@ fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
         let relative_path = get_relative_path(&args.source_dir, &file_path)
             .with_context(|| format!("non-relative path: {}", file_path.display()))?;
         if args.verbose {
-            println!("Processing {}", relative_path.display());
+            print!(
+                "{} {}",
+                "Processing".green().dimmed(),
+                relative_path.display()
+            );
         }
         let staging_path = staging_dir.join(relative_path);
         if filesize <= args.max_file_size {
             if args.verbose {
-                println!("  ╰ matchpicking");
-            }
+                println!("{}", " [matchpicking]".yellow().dimmed());
+            };
             let original_text = std::fs::read_to_string(&file_path)
                 .with_context(|| format!("failed to read file {}", file_path.display()))?;
             let fixed_text = matchpick::process(
@@ -89,6 +103,9 @@ fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
             )?;
             std::fs::write(&staging_path, fixed_text).context("failed to write to staging dir")?;
         } else {
+            if args.verbose {
+                println!();
+            }
             std::fs::copy(&file_path, &staging_path).context("failed to copy to staging dir")?;
         }
         copy_file_mode(&file_path, &staging_path)?;
