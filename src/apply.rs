@@ -89,12 +89,32 @@ fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
             );
         }
         let staging_path = staging_dir.join(relative_path);
-        if filesize <= args.max_file_size {
-            if args.verbose {
-                println!("{}", " [matchpicking]".yellow().dimmed());
-            };
-            let original_text = std::fs::read_to_string(&file_path)
+        // Determine if file is to be matchpicked
+        let matchpickable_text = if filesize <= args.max_file_size {
+            let bytes = std::fs::read(&file_path)
                 .with_context(|| format!("failed to read file {}", file_path.display()))?;
+            match String::from_utf8(bytes) {
+                Ok(text) => {
+                    if args.verbose {
+                        println!("{}", " [matchpicking]".yellow().dimmed());
+                    };
+                    Some(text)
+                }
+                Err(utf8error) => {
+                    if args.verbose {
+                        print!("{}", format!(" [{utf8error}]").yellow().bold())
+                    };
+                    None
+                }
+            }
+        } else {
+            if args.verbose {
+                println!();
+            }
+            None
+        };
+        // Matchpick / copy
+        if let Some(original_text) = matchpickable_text {
             let fixed_text = matchpick::process(
                 &original_text,
                 Some(args.hostname.clone()),
@@ -103,9 +123,6 @@ fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
             )?;
             std::fs::write(&staging_path, fixed_text).context("failed to write to staging dir")?;
         } else {
-            if args.verbose {
-                println!();
-            }
             std::fs::copy(&file_path, &staging_path).context("failed to copy to staging dir")?;
         }
         copy_file_mode(&file_path, &staging_path)?;
