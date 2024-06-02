@@ -59,7 +59,6 @@ fn cleanup_staging(staging_dir: &Path) -> Result<()> {
 
 fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
     let source_dir_contents = walk_dir(&args.source_dir)?;
-    dbg!(&source_dir_contents);
     for dir_path in source_dir_contents.dirs {
         let relative_path = get_relative_path(&args.source_dir, &dir_path)
             .with_context(|| format!("non-relative path: {}", dir_path.display()))?;

@@ -75,7 +75,6 @@ enum PrintValue {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    dbg!(&args);
     generate_default_configuration_file().context("generate default configuration file")?;
     let config = homux::config::parse_configuration_file(args.config_file)?;
     match args.operation {
@@ -105,7 +104,6 @@ fn apply(args: ApplyArgs, config: Config) -> Result<()> {
         max_file_size: 1_000_000,
         verbose: args.verbose,
     };
-    dbg!(&apply_args);
     homux::apply::apply(apply_args)?;
     Ok(())
 }
@@ -122,7 +120,6 @@ fn add(args: AddArgs, config: Config) -> Result<()> {
         source_dir,
         target_base,
     };
-    dbg!(&add_args);
     homux::add::add(add_args)?;
     Ok(())
 }

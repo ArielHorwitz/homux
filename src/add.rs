@@ -19,7 +19,6 @@ pub fn add(args: AddArgs) -> Result<()> {
     };
     let relative_target_file =
         get_relative_path(&args.target_base, &target_file).context("get relative target file")?;
-    dbg!(&relative_target_file);
     let target_path = args.source_dir.join(relative_target_file);
     println!(
         "Adding new file to source directory: {}",
