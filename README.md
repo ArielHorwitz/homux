@@ -1,7 +1,7 @@
 Homux is a home directory multiplexer.
 
 ## How it works
-A *source* directory is used as a source to be universally applied to the home directory of all hosts. In order to multiplex configurations across different hosts, the [matchpick](https://github.com/ArielHorwitz/matchpick) library is used to match different lines depending on which host is being applied to.
+A *source* directory is applied to the home directory of multiple hosts. In order to multiplex configurations across different hosts, the [matchpick](https://github.com/ArielHorwitz/matchpick) library is used to match different lines depending on which host is being applied to.
 
 Let's look at an example configuration file, `~/.gitconfig`. Suppose our home computer is named "homestation", while our computer at work is named "workstation". We wish to configure our email address differently on each host, while keeping our name the same:
 ```
@@ -18,4 +18,4 @@ Let's look at an example configuration file, `~/.gitconfig`. Suppose our home co
     ~<<<
 ```
 
-This allows a single directory managed by a single repository to be managed as the configuration source even across different hosts.
+This allows a single directory managed by a single repository to be used as the configuration source even across different hosts.
