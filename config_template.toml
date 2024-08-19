@@ -1,2 +1,11 @@
-# Source directory is relative to home directory unless absolute path is given
+# hostname = "custom_hostname"
+
+[directories]
+# Directories are relative to home directory unless path is absolute
 source = ".local/share/homux/source"
+dry_run = "/tmp/homux.dry_run"
+
+[matchpick]
+max_file_size = 1_000_000
+enter_pattern = "~>>>"
+exit_pattern = "~<<<"

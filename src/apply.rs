@@ -1,35 +1,41 @@
-use crate::files::{copy_directory_full, copy_file_mode, get_relative_path, walk_dir};
+use crate::{config::Config, files};
 use anyhow::{Context, Result};
+use clap::Parser;
 use colored::Colorize;
 use std::path::{Path, PathBuf};
 
 const STAGING_DIR_TEMPLATE: &str = "homux.staging.XXXXXXXXX";
-const ENTER_PATTERN: &str = "~>>>";
-const EXIT_PATTERN: &str = "~<<<";
 
-#[derive(Debug)]
-pub struct ApplyArgs {
-    pub source_dir: PathBuf,
-    pub target_dir: PathBuf,
-    pub hostname: String,
-    pub max_file_size: u64,
-    pub verbose: bool,
+#[derive(Debug, Clone, Parser)]
+pub struct Args {
+    /// Dry run (apply to temporary directory instead of home directory)
+    #[arg(short = 'd', long)]
+    dry_run: bool,
+    /// Print more verbose output
+    #[arg(short = 'v', long)]
+    verbose: bool,
 }
 
-pub fn apply(args: ApplyArgs) -> Result<()> {
+pub fn apply(args: &Args, config: &Config) -> Result<()> {
+    let target_dir = if args.dry_run {
+        config.dirs.dry_run.clone()
+    } else {
+        config.dirs.home.clone()
+    };
+
     let staging_dir = get_staging_dir()?;
     println!(
         "{} at directory: {}",
         "Staging".green().bold(),
         staging_dir.display()
     );
-    stage_source(&args, &staging_dir).context("stage source")?;
+    stage_source(config, &staging_dir, args.verbose).context("stage source")?;
     println!(
         "{} to target directory: {}",
         "Applying".green().bold(),
-        args.target_dir.display()
+        target_dir.display()
     );
-    let apply_result = copy_directory_full(&staging_dir, &args.target_dir)
+    let apply_result = files::copy_directory_full(&staging_dir, &target_dir)
         .context("copy staging recursively to target");
     println!(
         "{} up staging directory: {}",
@@ -67,10 +73,10 @@ fn cleanup_staging(staging_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
-    let source_dir_contents = walk_dir(&args.source_dir)?;
+fn stage_source(config: &Config, staging_dir: &Path, verbose: bool) -> Result<()> {
+    let source_dir_contents = files::walk_dir(&config.dirs.source)?;
     for dir_path in source_dir_contents.dirs {
-        let relative_path = get_relative_path(&args.source_dir, &dir_path)
+        let relative_path = files::get_relative_path(&config.dirs.source, &dir_path)
             .with_context(|| format!("non-relative path: {}", dir_path.display()))?;
         let staging_path = staging_dir.join(relative_path);
         std::fs::create_dir_all(&staging_path).context("failed to create staging subdirectory")?;
@@ -79,9 +85,9 @@ fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
         let filesize = std::fs::metadata(&file_path)
             .with_context(|| format!("failed to read file metadata: {}", file_path.display()))?
             .len();
-        let relative_path = get_relative_path(&args.source_dir, &file_path)
+        let relative_path = files::get_relative_path(&config.dirs.source, &file_path)
             .with_context(|| format!("non-relative path: {}", file_path.display()))?;
-        if args.verbose {
+        if verbose {
             print!(
                 "{} {}",
                 "Processing".green().dimmed(),
@@ -90,25 +96,25 @@ fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
         }
         let staging_path = staging_dir.join(relative_path);
         // Determine if file is to be matchpicked
-        let matchpickable_text = if filesize <= args.max_file_size {
+        let matchpickable_text = if filesize <= config.matchpick.max_file_size {
             let bytes = std::fs::read(&file_path)
                 .with_context(|| format!("failed to read file {}", file_path.display()))?;
             match String::from_utf8(bytes) {
                 Ok(text) => {
-                    if args.verbose {
+                    if verbose {
                         println!("{}", " [matchpicking]".yellow().dimmed());
                     };
                     Some(text)
                 }
                 Err(utf8error) => {
-                    if args.verbose {
-                        print!("{}", format!(" [{utf8error}]").yellow().bold())
+                    if verbose {
+                        print!("{}", format!(" [{utf8error}]").yellow().bold());
                     };
                     None
                 }
             }
         } else {
-            if args.verbose {
+            if verbose {
                 println!();
             }
             None
@@ -117,15 +123,15 @@ fn stage_source(args: &ApplyArgs, staging_dir: &Path) -> Result<()> {
         if let Some(original_text) = matchpickable_text {
             let fixed_text = matchpick::process(
                 &original_text,
-                Some(args.hostname.clone()),
-                ENTER_PATTERN,
-                EXIT_PATTERN,
+                Some(config.hostname.clone()),
+                &config.matchpick.enter_pattern,
+                &config.matchpick.exit_pattern,
             )?;
             std::fs::write(&staging_path, fixed_text).context("failed to write to staging dir")?;
         } else {
             std::fs::copy(&file_path, &staging_path).context("failed to copy to staging dir")?;
         }
-        copy_file_mode(&file_path, &staging_path)?;
+        files::copy_file_mode(&file_path, &staging_path)?;
     }
     Ok(())
 }
