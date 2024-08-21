@@ -21,7 +21,7 @@ enum Operation {
     Apply(homux::apply::Args),
     /// Add a new file to the source directory
     Add(homux::add::Args),
-    /// Validate and print configuration and arguments
+    /// Validate and print configuration and arguments (WARNING: will print secrets)
     Validate,
 }
 

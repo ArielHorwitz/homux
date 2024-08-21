@@ -5,7 +5,10 @@ use toml;
 
 const CONFIG_DIR: &str = ".config/homux";
 const CONFIG_FILE: &str = "config.toml";
+const SECRETS_FILE: &str = "secrets.toml";
 const CONFIG_TOML_TEMPLATE: &str = include_str!("../config_template.toml");
+
+pub type Secrets = std::collections::HashMap<String, String>;
 
 #[derive(Debug, Deserialize)]
 struct UserConfiguration {
@@ -39,6 +42,7 @@ pub struct Config {
     pub hostname: String,
     pub dirs: Directories,
     pub matchpick: Matchpick,
+    pub secrets: Secrets,
 }
 
 impl Config {
@@ -46,6 +50,7 @@ impl Config {
         let home_dir = crate::files::get_home_dir().context("get home dir")?;
         let config_dir = home_dir.join(CONFIG_DIR);
         let config_file = config_dir.join(CONFIG_FILE);
+        let secrets_file = config_dir.join(SECRETS_FILE);
 
         if !config_file.exists() && generate_missing {
             if let Some(config_dir) = config_file.parent() {
@@ -59,6 +64,9 @@ impl Config {
             &std::fs::read_to_string(&config_file).context("read user config file")?,
         )
         .context("parse user config file")?;
+        let secrets: Secrets =
+            toml::from_str(&std::fs::read_to_string(secrets_file).unwrap_or_default())
+                .context("parse user config file")?;
 
         let hostname = if let Some(hostname) = user_config.hostname {
             hostname
@@ -76,6 +84,7 @@ impl Config {
             hostname,
             dirs,
             matchpick: user_config.matchpick,
+            secrets,
         })
     }
 }

@@ -94,44 +94,68 @@ fn stage_source(config: &Config, staging_dir: &Path, verbose: bool) -> Result<()
                 relative_path.display()
             );
         }
+        // Determine if file is utf8
+        let bytes = std::fs::read(&file_path)
+            .with_context(|| format!("failed to read file {}", file_path.display()))?;
+        let text_option = String::from_utf8(bytes)
+            .map_err(|utf8error| {
+                if verbose {
+                    print!("{}", format!(" not utf8: [{utf8error}]").yellow().bold());
+                };
+            })
+            .ok();
+
         let staging_path = staging_dir.join(relative_path);
-        // Determine if file is to be matchpicked
-        let matchpickable_text = if filesize <= config.matchpick.max_file_size {
-            let bytes = std::fs::read(&file_path)
-                .with_context(|| format!("failed to read file {}", file_path.display()))?;
-            match String::from_utf8(bytes) {
-                Ok(text) => {
+        if let Some(text) = text_option {
+            // Matchpick
+            let text = if filesize <= config.matchpick.max_file_size {
+                if text.contains(&config.matchpick.enter_pattern) {
                     if verbose {
-                        println!("{}", " [matchpicking]".yellow().dimmed());
+                        print!("{}", " [matchpicking]".yellow().bold());
                     };
-                    Some(text)
+                    matchpick::process(
+                        &text,
+                        Some(config.hostname.clone()),
+                        &config.matchpick.enter_pattern,
+                        &config.matchpick.exit_pattern,
+                    )?
+                } else {
+                    text
                 }
-                Err(utf8error) => {
-                    if verbose {
-                        print!("{}", format!(" [{utf8error}]").yellow().bold());
-                    };
-                    None
-                }
-            }
-        } else {
-            if verbose {
-                println!();
-            }
-            None
-        };
-        // Matchpick / copy
-        if let Some(original_text) = matchpickable_text {
-            let fixed_text = matchpick::process(
-                &original_text,
-                Some(config.hostname.clone()),
-                &config.matchpick.enter_pattern,
-                &config.matchpick.exit_pattern,
-            )?;
-            std::fs::write(&staging_path, fixed_text).context("failed to write to staging dir")?;
+            } else {
+                text
+            };
+            // Insert secrets
+            let secret_result = insert_secrets(text, &config.secrets);
+            if verbose && secret_result.inserted {
+                print!("{}", " [inserted secrets]".yellow().bold());
+            };
+            let text = secret_result.text;
+            std::fs::write(&staging_path, text).context("failed to write to staging dir")?;
         } else {
             std::fs::copy(&file_path, &staging_path).context("failed to copy to staging dir")?;
         }
         files::copy_file_mode(&file_path, &staging_path)?;
+
+        if verbose {
+            println!();
+        }
     }
     Ok(())
+}
+
+struct SecretInsertionResult {
+    text: String,
+    inserted: bool,
+}
+
+fn insert_secrets(mut text: String, secrets: &crate::config::Secrets) -> SecretInsertionResult {
+    let mut inserted = false;
+    for (key, value) in secrets {
+        if text.contains(key) {
+            text = text.replace(key, value);
+            inserted = true;
+        }
+    }
+    SecretInsertionResult { text, inserted }
 }
