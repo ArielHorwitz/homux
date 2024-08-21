@@ -21,8 +21,15 @@ enum Operation {
     Apply(homux::apply::Args),
     /// Add a new file to the source directory
     Add(homux::add::Args),
-    /// Validate and print configuration and arguments (WARNING: will print secrets)
-    Validate,
+    /// Validate configuration
+    Validate(ValidateArgs),
+}
+
+#[derive(Debug, Clone, Copy, Parser)]
+struct ValidateArgs {
+    /// Print configuration (WARNING: will print secrets)
+    #[arg(long, short = 'p')]
+    print: bool,
 }
 
 fn main() -> Result<()> {
@@ -31,7 +38,11 @@ fn main() -> Result<()> {
     match args.operation {
         Operation::Apply(args) => homux::apply::apply(&args, &config).context("apply")?,
         Operation::Add(args) => homux::add::add(&args, &config).context("add")?,
-        Operation::Validate => println!("{config:#?}\n{args:#?}"),
+        Operation::Validate(args) => {
+            if args.print {
+                println!("{config:#?}");
+            }
+        }
     }
     Ok(())
 }
