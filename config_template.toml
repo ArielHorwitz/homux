@@ -7,5 +7,6 @@ dry_run = "/tmp/homux.dry_run"
 
 [matchpick]
 max_file_size = 1_000_000
-enter_pattern = "~>>>"
-exit_pattern = "~<<<"
+start_pattern = "~>>>" #NOMATCHPICK#
+end_pattern = "~<<<" #NOMATCHPICK#
+ignore_pattern = "#NOMATCHPICK#"

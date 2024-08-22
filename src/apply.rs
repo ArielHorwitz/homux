@@ -5,8 +5,6 @@ use colored::Colorize;
 use std::path::{Path, PathBuf};
 
 const STAGING_DIR_TEMPLATE: &str = "homux.staging.XXXXXXXXX";
-const MATCHPICK_START_PATTERN: &str = "~>>>";
-const MATCHPICK_END_PATTERN: &str = "~<<<";
 
 #[derive(Debug, Clone, Parser)]
 pub struct Args {
@@ -111,15 +109,16 @@ fn stage_source(config: &Config, staging_dir: &Path, verbose: bool) -> Result<()
         if let Some(text) = text_option {
             // Matchpick
             let text = if filesize <= config.matchpick.max_file_size {
-                if text.contains(MATCHPICK_START_PATTERN) {
+                if text.contains(&config.matchpick.start_pattern) {
                     if verbose {
                         print!("{}", " [matchpicking]".yellow().bold());
                     };
                     matchpick::process(
                         &text,
                         Some(config.hostname.clone()),
-                        MATCHPICK_START_PATTERN,
-                        MATCHPICK_END_PATTERN,
+                        &config.matchpick.start_pattern,
+                        &config.matchpick.end_pattern,
+                        config.matchpick.ignore_pattern.clone(),
                     )?
                 } else {
                     text

@@ -33,6 +33,9 @@ pub struct Directories {
 #[derive(Debug, Deserialize)]
 pub struct Matchpick {
     pub max_file_size: u64,
+    pub start_pattern: String,
+    pub end_pattern: String,
+    pub ignore_pattern: Option<String>,
 }
 
 #[derive(Debug)]

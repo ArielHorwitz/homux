@@ -167,9 +167,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "matchpick"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1de5a023b10d4eeb14a879daffdfe2addd4062840f5795825e6fbd48ec60d2e"
+checksum = "6b3283c2651b91442ba58d5e8aae82efdf11e929c1ae02166613657e058537c6"
 dependencies = [
  "anyhow",
  "clap",
