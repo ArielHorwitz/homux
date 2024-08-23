@@ -47,10 +47,10 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(generate_missing: bool) -> Result<Config> {
+    pub fn new(config_file: Option<std::path::PathBuf>, generate_missing: bool) -> Result<Config> {
         let home_dir = crate::files::get_home_dir().context("get home dir")?;
         let config_dir = home_dir.join(CONFIG_DIR);
-        let config_file = config_dir.join(CONFIG_FILE);
+        let config_file = config_file.unwrap_or_else(|| config_dir.join(CONFIG_FILE));
         let secrets_file = config_dir.join(SECRETS_FILE);
 
         if !config_file.exists() && generate_missing {

@@ -10,6 +10,9 @@ struct Args {
     /// Operation
     #[command(subcommand)]
     operation: Operation,
+    /// Custom location for config file
+    #[arg(long)]
+    config_file: Option<std::path::PathBuf>,
     /// Generate missing configuration file
     #[arg(long)]
     generate_missing: bool,
@@ -34,7 +37,8 @@ struct ValidateArgs {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let config = homux::config::Config::new(args.generate_missing).context("get config")?;
+    let config = homux::config::Config::new(args.config_file, args.generate_missing)
+        .context("get config")?;
     match args.operation {
         Operation::Apply(args) => homux::apply::apply(&args, &config).context("apply")?,
         Operation::Add(args) => homux::add::add(&args, &config).context("add")?,
