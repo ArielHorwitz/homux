@@ -8,7 +8,7 @@ const CONFIG_FILE: &str = "config.toml";
 const SECRETS_FILE: &str = "secrets.toml";
 const CONFIG_TOML_TEMPLATE: &str = include_str!("../config_template.toml");
 
-pub type Secrets = std::collections::HashMap<String, String>;
+pub type Secrets = Vec<(String, String)>;
 
 #[derive(Debug, Deserialize)]
 struct UserConfiguration {
@@ -65,9 +65,11 @@ impl Config {
             &std::fs::read_to_string(&config_file).context("read user config file")?,
         )
         .context("parse user config file")?;
-        let secrets: Secrets =
+        let secrets: std::collections::HashMap<String, String> =
             toml::from_str(&std::fs::read_to_string(secrets_file).unwrap_or_default())
                 .context("parse user config file")?;
+        let mut secrets: Secrets = secrets.into_iter().collect();
+        secrets.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
 
         let hostname = if let Some(hostname) = user_config.hostname {
             hostname
