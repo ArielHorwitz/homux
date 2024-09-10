@@ -25,26 +25,26 @@ pub fn apply(args: &Args, config: &Config) -> Result<()> {
 
     let staging_dir = get_staging_dir()?;
     println!(
-        "{} at directory: {}",
+        "{:>12} at directory: {}",
         "Staging".green().bold(),
         staging_dir.display()
     );
     stage_source(config, &staging_dir, args.verbose).context("stage source")?;
     println!(
-        "{} to target directory: {}",
+        "{:>12} to target directory: {}",
         "Applying".green().bold(),
         target_dir.display()
     );
     let apply_result = files::copy_directory_full(&staging_dir, &target_dir)
         .context("copy staging recursively to target");
     println!(
-        "{} up staging directory: {}",
+        "{:>12} up staging directory: {}",
         "Cleaning".green().bold(),
         staging_dir.display()
     );
     cleanup_staging(&staging_dir)?;
     apply_result?;
-    println!("{}", "Done.".green().bold());
+    println!("{:>12}", "Done".green().bold());
     Ok(())
 }
 
