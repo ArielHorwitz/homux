@@ -102,7 +102,7 @@ fn stage_source(
             .with_context(|| format!("non-relative path: {}", file_path.display()))?;
         if verbose {
             print!(
-                "{} {}",
+                "  {} {}",
                 "Processing".green().dimmed(),
                 relative_path.display()
             );
