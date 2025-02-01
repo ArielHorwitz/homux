@@ -8,6 +8,9 @@ const STAGING_DIR_TEMPLATE: &str = "homux.staging.XXXXXXXXX";
 
 #[derive(Debug, Clone, Parser)]
 pub struct Args {
+    /// Selections for matchpicking (instead of hostname)
+    #[arg(short = 's', long)]
+    select: Vec<String>,
     /// Dry run (apply to temporary directory instead of home directory)
     #[arg(short = 'd', long)]
     dry_run: bool,
@@ -22,6 +25,11 @@ pub fn apply(args: &Args, config: &Config) -> Result<()> {
     } else {
         config.dirs.home.clone()
     };
+    let matchpick_select = if args.select.is_empty() {
+        vec![config.hostname.clone()]
+    } else {
+        args.select.clone()
+    };
 
     let staging_dir = get_staging_dir()?;
     println!(
@@ -29,7 +37,7 @@ pub fn apply(args: &Args, config: &Config) -> Result<()> {
         "Staging".green().bold(),
         staging_dir.display()
     );
-    stage_source(config, &staging_dir, args.verbose).context("stage source")?;
+    stage_source(config, &staging_dir, &matchpick_select, args.verbose).context("stage source")?;
     println!(
         "{:>12} to target directory: {}",
         "Applying".green().bold(),
@@ -73,7 +81,12 @@ fn cleanup_staging(staging_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn stage_source(config: &Config, staging_dir: &Path, verbose: bool) -> Result<()> {
+fn stage_source(
+    config: &Config,
+    staging_dir: &Path,
+    matchpick_select: &[String],
+    verbose: bool,
+) -> Result<()> {
     let source_dir_contents = files::walk_dir(&config.dirs.source)?;
     for dir_path in source_dir_contents.dirs {
         let relative_path = files::get_relative_path(&config.dirs.source, &dir_path)
@@ -115,7 +128,7 @@ fn stage_source(config: &Config, staging_dir: &Path, verbose: bool) -> Result<()
                     };
                     matchpick::process(
                         &text,
-                        Some(config.hostname.clone()),
+                        matchpick_select.to_owned(),
                         &config.matchpick.start_pattern,
                         &config.matchpick.end_pattern,
                         config.matchpick.ignore_pattern.clone(),
