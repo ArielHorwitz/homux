@@ -114,7 +114,7 @@ fn stage_source(
             .map_err(|utf8error| {
                 if verbose {
                     print!("{}", format!(" not utf8: [{utf8error}]").yellow().bold());
-                };
+                }
             })
             .ok();
 
@@ -125,7 +125,7 @@ fn stage_source(
                 if text.contains(&config.matchpick.start_pattern) {
                     if verbose {
                         print!("{}", " [matchpicking]".yellow().bold());
-                    };
+                    }
                     matchpick::process(
                         &text,
                         matchpick_select.to_owned(),
@@ -143,7 +143,7 @@ fn stage_source(
             let secret_result = insert_secrets(text, &config.secrets);
             if verbose && secret_result.inserted {
                 print!("{}", " [inserted secrets]".yellow().bold());
-            };
+            }
             let text = secret_result.text;
             std::fs::write(&staging_path, text).context("failed to write to staging dir")?;
         } else {
