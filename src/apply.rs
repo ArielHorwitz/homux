@@ -94,6 +94,12 @@ fn stage_source(
         let staging_path = staging_dir.join(relative_path);
         std::fs::create_dir_all(&staging_path).context("failed to create staging subdirectory")?;
     }
+    let mut variables = config
+        .variables
+        .clone()
+        .into_iter()
+        .collect::<Vec<(String, String)>>();
+    variables.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
     for file_path in source_dir_contents.files {
         let filesize = std::fs::metadata(&file_path)
             .with_context(|| format!("failed to read file metadata: {}", file_path.display()))?
@@ -121,7 +127,7 @@ fn stage_source(
         let staging_path = staging_dir.join(relative_path);
         if let Some(text) = text_option {
             // Matchpick
-            let text = if filesize <= config.matchpick.max_file_size {
+            let mut text = if filesize <= config.matchpick.max_file_size {
                 if text.contains(&config.matchpick.start_pattern) {
                     if verbose {
                         print!("{}", " [matchpicking]".yellow().bold());
@@ -140,11 +146,16 @@ fn stage_source(
                 text
             };
             // Insert secrets
-            let secret_result = insert_secrets(text, &config.secrets);
-            if verbose && secret_result.inserted {
+            let mut inserted = false;
+            for (key, value) in &variables {
+                if text.contains(key) {
+                    text = text.replace(key, value);
+                    inserted = true;
+                }
+            }
+            if verbose && inserted {
                 print!("{}", " [inserted secrets]".yellow().bold());
             }
-            let text = secret_result.text;
             std::fs::write(&staging_path, text).context("failed to write to staging dir")?;
         } else {
             std::fs::copy(&file_path, &staging_path).context("failed to copy to staging dir")?;
@@ -156,20 +167,4 @@ fn stage_source(
         }
     }
     Ok(())
-}
-
-struct SecretInsertionResult {
-    text: String,
-    inserted: bool,
-}
-
-fn insert_secrets(mut text: String, secrets: &crate::config::Secrets) -> SecretInsertionResult {
-    let mut inserted = false;
-    for (key, value) in secrets {
-        if text.contains(key) {
-            text = text.replace(key, value);
-            inserted = true;
-        }
-    }
-    SecretInsertionResult { text, inserted }
 }

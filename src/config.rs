@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
-use std::{fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 use toml;
 
 const CONFIG_DIR: &str = ".config/homux";
@@ -8,13 +8,12 @@ const CONFIG_FILE: &str = "config.toml";
 const SECRETS_FILE: &str = "secrets.toml";
 const CONFIG_TOML_TEMPLATE: &str = include_str!("../config_template.toml");
 
-pub type Secrets = Vec<(String, String)>;
-
 #[derive(Debug, Deserialize)]
 struct UserConfiguration {
     pub hostname: Option<String>,
     pub directories: UserDirectories,
     pub matchpick: Matchpick,
+    pub variables: HashMap<String, String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -43,7 +42,7 @@ pub struct Config {
     pub hostname: String,
     pub dirs: Directories,
     pub matchpick: Matchpick,
-    pub secrets: Secrets,
+    pub variables: HashMap<String, String>,
 }
 
 impl Config {
@@ -65,11 +64,11 @@ impl Config {
             &std::fs::read_to_string(&config_file).context("read user config file")?,
         )
         .context("parse user config file")?;
+        let secrets_string = std::fs::read_to_string(secrets_file).unwrap_or_default();
         let secrets: std::collections::HashMap<String, String> =
-            toml::from_str(&std::fs::read_to_string(secrets_file).unwrap_or_default())
-                .context("parse user config file")?;
-        let mut secrets: Secrets = secrets.into_iter().collect();
-        secrets.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+            toml::from_str(&secrets_string).context("parse user secrets file")?;
+        let mut variables = user_config.variables;
+        variables.extend(secrets);
 
         let hostname = if let Some(hostname) = user_config.hostname {
             hostname
@@ -87,7 +86,7 @@ impl Config {
             hostname,
             dirs,
             matchpick: user_config.matchpick,
-            secrets,
+            variables,
         })
     }
 }
